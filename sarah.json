@@ -1,0 +1,11 @@
+{
+  "partyDetails": {
+    "party": "Sarah::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf",
+    "isLocal": true,
+    "localMetadata": {
+      "resourceVersion": "0",
+      "annotations": {}
+    },
+    "identityProviderId": ""
+  }
+}

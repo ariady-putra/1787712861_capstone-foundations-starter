@@ -1,0 +1,10 @@
+{
+  "packagePreference": {
+    "packageReference": {
+      "packageId": "c51009794fe61ebb730d684ecb39e117cee4ebb3db3bcfc8fc437c903f5d3ac5",
+      "packageName": "realty-capstone",
+      "packageVersion": "0.1.0"
+    },
+    "synchronizerId": "synchronizer-1::12207453d99255bd27a3967be5ee3aace6ba5fa88eb858c2fefa0654a2786443a179"
+  }
+}

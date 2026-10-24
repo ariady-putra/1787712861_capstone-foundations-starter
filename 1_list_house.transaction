@@ -1,0 +1,51 @@
+{
+  "transaction": {
+    "updateId": "1220551193e8d5db049d4f357203c4855c6cac9fc32aa4579717fb8342e6e8c5c051",
+    "commandId": "1-list-house",
+    "workflowId": "",
+    "effectiveAt": "2026-10-24T07:25:20.496468Z",
+    "events": [
+      {
+        "CreatedEvent": {
+          "offset": 18,
+          "nodeId": 0,
+          "contractId": "00a79555e5701f340e5b0db024e27b96cc739a8399dcb733eb8a25772fac80ce3aca121220bb3b7e7489f252e61724c53aaa2bb241f6b9a994fd4c37714eefc94116de306f",
+          "templateId": "c51009794fe61ebb730d684ecb39e117cee4ebb3db3bcfc8fc437c903f5d3ac5:Realty:Listing",
+          "contractKey": null,
+          "contractKeyHash": "",
+          "createArgument": {
+            "seller": "Sarah::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf",
+            "registry": "Registry::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf",
+            "address": "12 Oak St",
+            "propertyType": "House",
+            "askingPrice": "500000.0000000000"
+          },
+          "createdEventBlob": "",
+          "interfaceViews": [],
+          "witnessParties": [
+            "Sarah::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf"
+          ],
+          "signatories": [
+            "Sarah::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf"
+          ],
+          "observers": [
+            "Registry::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf"
+          ],
+          "createdAt": "2026-10-24T07:25:20.496468Z",
+          "packageName": "realty-capstone",
+          "representativePackageId": "c51009794fe61ebb730d684ecb39e117cee4ebb3db3bcfc8fc437c903f5d3ac5",
+          "acsDelta": true
+        }
+      }
+    ],
+    "offset": 18,
+    "synchronizerId": "synchronizer-1::12207453d99255bd27a3967be5ee3aace6ba5fa88eb858c2fefa0654a2786443a179",
+    "traceContext": {
+      "traceparent": "00-9e3c90a1c46a654cc5abcdeb2b31fa23-2d934ebf7095914b-03",
+      "tracestate": null
+    },
+    "recordTime": "2026-10-24T07:25:21.560839Z",
+    "externalTransactionHash": null,
+    "paidTrafficCost": 0
+  }
+}

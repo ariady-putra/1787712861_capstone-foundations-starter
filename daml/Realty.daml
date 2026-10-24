@@ -1,0 +1,100 @@
+module Realty where
+
+-- Starting point. This file currently defines nothing useful.
+-- Work through BRIEF.md and build the model here: PropertyType, Listing, Offer,
+-- and Sale. Delete the placeholder below once you begin Stage 1.
+
+data PropertyType
+  = House
+  | Condo
+  | Land
+  deriving (Eq, Show)
+
+propertyLabel : PropertyType -> Text
+propertyLabel House = "Detached house"
+propertyLabel Condo = "Condominium"
+propertyLabel Land  = "Vacant land"
+
+template Listing
+  with
+    seller       : Party
+    registry     : Party
+    address      : Text
+    propertyType : PropertyType
+    askingPrice  : Decimal
+  where
+    signatory seller
+    observer  registry
+    
+    ensure askingPrice > 0.0
+    
+    choice Reprice : ContractId Listing
+      with newPrice : Decimal
+      controller seller
+        do
+          assertMsg "Non-positive newPrice" $ newPrice > 0.0
+          create this
+            with askingPrice = newPrice
+    
+    choice Delist : ()
+      controller seller
+        do return ()
+
+template Offer
+  with
+    buyer        : Party
+    seller       : Party
+    registry     : Party
+    address      : Text
+    -- propertyType : PropertyType
+    amount       : Decimal
+  where
+    signatory buyer
+    observer  seller, registry
+    
+    ensure amount > 0.0
+    
+    choice Withdraw : ()
+      controller buyer
+        do return ()
+    
+    choice Reject : ()
+      controller seller
+        do return ()
+    
+    choice Accept : ContractId Sale
+      with listingCid : ContractId Listing
+      controller seller
+        do
+          l <- fetch listingCid
+          assertMsg "Listing does not match"
+            $  l.seller   == seller
+            && l.registry == registry
+            && l.address  == address
+          
+          archive listingCid
+          
+          create Sale
+            with
+              buyer
+              seller
+              registry
+              address
+              propertyType = l.propertyType
+              price = amount
+
+template Sale
+  with
+    buyer        : Party
+    seller       : Party
+    registry     : Party
+    address      : Text
+    propertyType : PropertyType
+    price        : Decimal
+  where
+    signatory buyer, seller
+    observer  registry
+    
+    nonconsuming choice GetPrice : Decimal
+      controller buyer
+        do return price

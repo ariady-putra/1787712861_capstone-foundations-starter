@@ -1,0 +1,79 @@
+{
+  "transaction": {
+    "updateId": "122088184a3706b13594772830193d84a0c922af4b383a05c57ceb217320e4d89129",
+    "commandId": "3-accept-offer",
+    "workflowId": "",
+    "effectiveAt": "2026-10-24T07:29:29.768924Z",
+    "events": [
+      {
+        "ArchivedEvent": {
+          "offset": 24,
+          "nodeId": 0,
+          "contractId": "00d37667108d4356c7df122315ee4eda1fb35d12474cf00dca9441d15174752990ca12122050106c0933227881108f538d978f930b96d010e97167b28fe82cd95ca652838f",
+          "templateId": "c51009794fe61ebb730d684ecb39e117cee4ebb3db3bcfc8fc437c903f5d3ac5:Realty:Offer",
+          "witnessParties": [
+            "Sarah::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf"
+          ],
+          "packageName": "realty-capstone",
+          "implementedInterfaces": []
+        }
+      },
+      {
+        "ArchivedEvent": {
+          "offset": 24,
+          "nodeId": 2,
+          "contractId": "00a79555e5701f340e5b0db024e27b96cc739a8399dcb733eb8a25772fac80ce3aca121220bb3b7e7489f252e61724c53aaa2bb241f6b9a994fd4c37714eefc94116de306f",
+          "templateId": "c51009794fe61ebb730d684ecb39e117cee4ebb3db3bcfc8fc437c903f5d3ac5:Realty:Listing",
+          "witnessParties": [
+            "Sarah::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf"
+          ],
+          "packageName": "realty-capstone",
+          "implementedInterfaces": []
+        }
+      },
+      {
+        "CreatedEvent": {
+          "offset": 24,
+          "nodeId": 3,
+          "contractId": "00eff5925281ffa376ffa6c5be06319f4dbf4207660406daa54744252ea00ddbbdca121220cc59ed1aca259be7ee798e2392e7b6c3cec5fd12afe23d8cf38f4a523f25d906",
+          "templateId": "c51009794fe61ebb730d684ecb39e117cee4ebb3db3bcfc8fc437c903f5d3ac5:Realty:Sale",
+          "contractKey": null,
+          "contractKeyHash": "",
+          "createArgument": {
+            "buyer": "Bob::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf",
+            "seller": "Sarah::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf",
+            "registry": "Registry::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf",
+            "address": "12 Oak St",
+            "propertyType": "House",
+            "price": "480000.0000000000"
+          },
+          "createdEventBlob": "",
+          "interfaceViews": [],
+          "witnessParties": [
+            "Sarah::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf"
+          ],
+          "signatories": [
+            "Bob::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf",
+            "Sarah::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf"
+          ],
+          "observers": [
+            "Registry::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf"
+          ],
+          "createdAt": "2026-10-24T07:29:29.768924Z",
+          "packageName": "realty-capstone",
+          "representativePackageId": "c51009794fe61ebb730d684ecb39e117cee4ebb3db3bcfc8fc437c903f5d3ac5",
+          "acsDelta": true
+        }
+      }
+    ],
+    "offset": 24,
+    "synchronizerId": "synchronizer-1::12207453d99255bd27a3967be5ee3aace6ba5fa88eb858c2fefa0654a2786443a179",
+    "traceContext": {
+      "traceparent": "00-8b05ef2ee9134c3675526c925f25cc64-7a0e958a94fa43c4-03",
+      "tracestate": null
+    },
+    "recordTime": "2026-10-24T07:29:29.871735Z",
+    "externalTransactionHash": null,
+    "paidTrafficCost": 0
+  }
+}

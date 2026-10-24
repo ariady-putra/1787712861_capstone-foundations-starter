@@ -1,0 +1,23 @@
+{
+  "commands": {
+    "commands": [
+      {
+        "CreateCommand": {
+          "templateId": "c51009794fe61ebb730d684ecb39e117cee4ebb3db3bcfc8fc437c903f5d3ac5:Realty:Offer",
+          "createArguments": {
+            "buyer": "Bob::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf",
+            "seller": "Sarah::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf",
+            "registry": "Registry::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf",
+            "address": "12 Oak St",
+            "amount": "480000.0"
+          }
+        }
+      }
+    ],
+    "userId": "bob",
+    "commandId": "2-offer-amount",
+    "actAs": [
+      "Bob::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf"
+    ]
+  }
+}

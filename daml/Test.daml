@@ -1,0 +1,521 @@
+module Test where
+
+import Realty
+import Daml.Script
+import DA.Foldable (forA_)
+import DA.Assert (assertEq, (===), (=/=))
+import DA.List (init, tail)
+
+setup : Script [Party]
+setup = script do
+  mapA
+    (allocatePartyByHint . PartyIdHint)
+    ["Seller", "Buyer", "Registry"]
+
+setupListing : [Party] -> Script [ContractId Listing]
+setupListing [seller, buyer, registry] = script do
+  mapA
+    (\(propertyType, askingPrice) -> do
+      let address = propertyLabel propertyType
+      seller `submit` do
+        createCmd Listing
+          with seller, registry, address, propertyType, askingPrice
+    )
+    -- Property, AskingPrice
+    [ (House, 1_000_000.00)
+    , (Condo,   200_000.00)
+    , (Land ,    50_000.00)
+    ]
+setupListing _ = setup >>= setupListing
+
+setupOffer : [Party] -> Script [ContractId Offer]
+setupOffer [seller, buyer, registry] = script do
+  mapA
+    (\(propertyType, amount) -> do
+      let address = propertyLabel propertyType
+      buyer `submit` do
+        createCmd Offer
+          with buyer, seller, registry, address, amount
+    )
+    -- Property, OfferAmount
+    [ (House, 900_000.00)
+    , (Condo, 100_000.00)
+    , (Land ,  40_000.00)
+    ]
+setupOffer _ = setup >>= setupOffer
+
+setupSale : [Party] -> Script [ContractId Sale]
+setupSale [seller, buyer, registry] = script do
+  mapA
+    (\(propertyType, price) -> do
+      let address = propertyLabel propertyType
+      [buyer, seller] `submit` do
+        createCmd Sale
+          with buyer, seller, registry, address, propertyType, price
+    )
+    -- Property, SalePrice
+    [ (House, 900_000.00)
+    , (Condo, 100_000.00)
+    , (Land ,  40_000.00)
+    ]
+setupSale _ = setup >>= setupSale
+
+testListing_Reprice : Script ()
+testListing_Reprice = script do
+    parties@[seller, buyer, registry] <- setup
+    [house, condo, land] <- setupListing parties
+    
+    listings <- mapA
+      (\(property, newPrice) -> do
+        newListing <- seller `submit` do
+          property |> Reprice
+            with newPrice
+          
+        maybeListing <- seller `queryContractId` newListing
+        maybeListing =/= None
+        
+        let Some Listing { askingPrice } = maybeListing
+        askingPrice === newPrice
+        
+        return newListing
+      )
+      -- Property, NewPrice
+      [ (house, 2_000_000.00)
+      , (condo,   300_000.00)
+      , (land ,    60_000.00)
+      ]
+    
+    -- Clean up:
+    forA_
+      listings
+      (\listing -> do
+        seller `submit` do
+          archiveCmd listing
+      )
+    
+    length <$> query @Listing seller
+      >>= assertEq 0 -- seller voluntarily archived their listings
+    
+  where (|>) = exerciseCmd
+
+testListing_Delist : Script ()
+testListing_Delist = script do
+    parties@[seller, buyer, registry] <- setup
+    listings <- setupListing parties
+    
+    length <$> query @Listing seller
+      >>= assertEq 3
+    
+    forA_
+      listings
+      (\listing -> do
+        seller `submit` do
+          listing |> Delist
+      )
+    
+    length <$> query @Listing seller
+      >>= assertEq 0
+  where (|>) = exerciseCmd
+
+testOffer_Withdraw : Script ()
+testOffer_Withdraw = script do
+    parties@[seller, buyer, registry] <- setup
+    offers <- setupOffer parties
+    
+    length <$> query @Offer buyer
+      >>= assertEq 3
+    
+    forA_
+      offers
+      (\offer -> do
+        buyer `submit` do
+          offer |> Withdraw
+      )
+    
+    length <$> query @Offer buyer
+      >>= assertEq 0
+  where (|>) = exerciseCmd
+
+testOffer_Reject : Script ()
+testOffer_Reject = script do
+    parties@[seller, buyer, registry] <- setup
+    offers <- setupOffer parties
+    
+    length <$> query @Offer seller
+      >>= assertEq 3
+    
+    forA_
+      offers
+      (\offer -> do
+        seller `submit` do
+          offer |> Reject
+      )
+    
+    length <$> query @Offer seller
+      >>= assertEq 0
+  where (|>) = exerciseCmd
+
+testOffer_Accept : Script ()
+testOffer_Accept = script do
+    parties@[seller, buyer, registry] <- setup
+    listings <- setupListing parties
+    offers <- setupOffer parties
+    
+    length <$> query @Listing registry
+      >>= assertEq 3
+    length <$> query @Offer registry
+      >>= assertEq 3
+    length <$> query @Sale registry
+      >>= assertEq 0
+    
+    sales <- mapA
+      (\(listingCid, offer) -> do
+        seller `submit` do
+          offer |> Accept
+            with listingCid
+      )
+      (zip listings offers)
+    
+    length <$> query @Listing registry
+      >>= assertEq 0
+    length <$> query @Offer registry
+      >>= assertEq 0
+    length <$> query @Sale registry
+      >>= assertEq 3
+    
+    -- Clean up:
+    forA_
+      sales
+      (\sale -> do
+        [buyer, seller] `submit` do
+          archiveCmd sale
+      )
+    
+    length <$> query @Sale buyer
+      >>= assertEq 0 -- buyer voluntarily archived their sales
+    
+  where (|>) = exerciseCmd
+
+testSale_GetPrice : Script ()
+testSale_GetPrice = script do
+    parties@[seller, buyer, registry] <- setup
+    sales@[house, condo, land] <- setupSale parties
+    
+    length <$> query @Sale buyer
+      >>= assertEq 3
+    
+    forA_
+      -- Property, ExpectedPrice
+      [ (house, 900_000.00)
+      , (condo, 100_000.00)
+      , (land ,  40_000.00)
+      ]
+      (\(property, expectedPrice) -> do
+        propertyType <- buyer `submit` do
+          property |> GetPrice
+        propertyType === expectedPrice
+      )
+    
+    length <$> query @Sale buyer
+      >>= assertEq 3
+    
+    -- Clean up:
+    forA_
+      sales
+      (\sale -> do
+        [buyer, seller] `submit` do
+          archiveCmd sale
+      )
+    
+    length <$> query @Sale buyer
+      >>= assertEq 0 -- buyer voluntarily archived their sales
+    
+  where (|>) = exerciseCmd
+
+testRealty_Positive : Script ()
+testRealty_Positive = script do
+  parties@[seller, buyer, registry] <- setup
+  
+  length <$> query @Listing seller
+    >>= assertEq 0
+  
+  house <- seller `submit` do
+    createAndExerciseCmd
+      Listing
+        with
+          seller
+          registry
+          address = propertyLabel House
+          propertyType = House
+          askingPrice = 3_000_000.0
+      Reprice
+        with newPrice = 4_000_000.0
+  
+  length <$> query @Listing seller
+    >>= assertEq 1
+  
+  maybeListing <- registry `queryContractId` house
+  maybeListing =/= None
+  let Some Listing { address, propertyType, askingPrice } = maybeListing
+  
+  offer <- buyer `submit` do
+    createCmd Offer
+      with
+        buyer
+        seller
+        registry
+        address
+        -- propertyType
+        amount = askingPrice
+  
+  sale <- seller `submit` do
+    offer `exerciseCmd` Accept
+      with listingCid = house
+  
+  price <- buyer `submit` do
+    sale `exerciseCmd` GetPrice
+  price === askingPrice
+  
+  -- Clean up:
+  [buyer, seller] `submit` do
+    archiveCmd sale
+  
+  length <$> query @Sale buyer
+    >>= assertEq 0 -- buyer voluntarily archived their sales
+
+testListing_Negative_askingPriceLTE0 : Script ()
+testListing_Negative_askingPriceLTE0 = script do
+  parties@[seller, buyer, registry] <- setup
+  
+  forA_
+    [0.0, -0.1, -1.0, -1.1]
+    (\askingPrice -> do
+      seller `submitMustFail` do
+        createCmd Listing
+          with
+            seller
+            registry
+            address = propertyLabel House
+            propertyType = House
+            askingPrice
+    )
+
+testListing_Negative_RepriceLTE0 : Script ()
+testListing_Negative_RepriceLTE0 = script do
+  parties@[seller, buyer, registry] <- setup
+  listings <- setupListing parties
+  
+  let reprice property = forA_
+        [0.0, -0.1, -1.0, -1.1]
+        (\newPrice -> do
+          seller `submitMustFail` do
+            property `exerciseCmd` Reprice
+              with newPrice
+        )
+  
+  forA_ listings reprice
+  
+  -- Clean up:
+  forA_
+    listings
+    (\listing -> do
+      seller `submit` do
+        archiveCmd listing
+    )
+  
+  length <$> query @Listing seller
+    >>= assertEq 0 -- seller voluntarily archived their listings
+
+testListing_Negative_Reprice_AuthorizationFailure : Script ()
+testListing_Negative_Reprice_AuthorizationFailure = script do
+  parties@[seller, buyer, registry] <- setup
+  listings <- setupListing parties
+  
+  let reprice property = forA_
+        [buyer, registry]
+        (\unauthorizedParty -> do
+          unauthorizedParty `submitMustFail` do
+            property `exerciseCmd` Reprice
+              with newPrice = 1_000.0
+        )
+  
+  forA_ listings reprice
+  
+  -- Clean up:
+  forA_
+    listings
+    (\listing -> do
+      seller `submit` do
+        archiveCmd listing
+    )
+  
+  length <$> query @Listing seller
+    >>= assertEq 0 -- seller voluntarily archived their listings
+
+testListing_Negative_Delist_AuthorizationFailure : Script ()
+testListing_Negative_Delist_AuthorizationFailure = script do
+  parties@[seller, buyer, registry] <- setup
+  listings <- setupListing parties
+  
+  let delist property = forA_
+        [buyer, registry]
+        (\unauthorizedParty -> do
+          unauthorizedParty `submitMustFail` do
+            property `exerciseCmd` Delist
+        )
+  
+  length <$> query @Listing seller
+    >>= assertEq 3
+  
+  forA_ listings delist
+  
+  length <$> query @Listing seller
+    >>= assertEq 3 -- no listing were delisted (archived)
+  
+  -- Clean up:
+  forA_
+    listings
+    (\listing -> do
+      seller `submit` do
+        archiveCmd listing
+    )
+  
+  length <$> query @Listing seller
+    >>= assertEq 0 -- seller voluntarily archived their listings
+
+testOffer_Negative_amountTE0 : Script ()
+testOffer_Negative_amountTE0 = script do
+  parties@[seller, buyer, registry] <- setup
+  
+  forA_
+    [0.0, -0.1, -1.0, -1.1]
+    (\amount -> do
+      buyer `submitMustFail` do
+        createCmd Offer
+          with
+            buyer
+            seller
+            registry
+            address = propertyLabel House
+            -- propertyType = House
+            amount
+    )
+
+testOffer_Negative_Withdraw_AuthorizationFailure : Script ()
+testOffer_Negative_Withdraw_AuthorizationFailure = script do
+  parties@[seller, buyer, registry] <- setup
+  offers <- setupOffer parties
+  
+  let withdraw offer = forA_
+        [seller, registry]
+        (\unauthorizedParty -> do
+          unauthorizedParty `submitMustFail` do
+            offer `exerciseCmd` Withdraw
+        )
+  
+  forA_ offers withdraw
+  
+  -- Clean up:
+  forA_
+    offers
+    (\offer -> do
+      buyer `submit` do
+        archiveCmd offer
+    )
+  
+  length <$> query @Offer buyer
+    >>= assertEq 0 -- buyer voluntarily archived their offers
+
+testOffer_Negative_Reject_AuthorizationFailure : Script ()
+testOffer_Negative_Reject_AuthorizationFailure = script do
+  parties@[seller, buyer, registry] <- setup
+  offers <- setupOffer parties
+  
+  let reject offer = forA_
+        [buyer, registry]
+        (\unauthorizedParty -> do
+          unauthorizedParty `submitMustFail` do
+            offer `exerciseCmd` Reject
+        )
+  
+  forA_ offers reject
+  
+  -- Clean up:
+  forA_
+    offers
+    (\offer -> do
+      buyer `submit` do
+        archiveCmd offer
+    )
+  
+  length <$> query @Offer buyer
+    >>= assertEq 0 -- buyer voluntarily archived their offers
+
+testOffer_Negative_Accept_AuthorizationFailure : Script ()
+testOffer_Negative_Accept_AuthorizationFailure = script do
+  parties@[seller, buyer, registry] <- setup
+  listings <- setupListing parties
+  offers <- setupOffer parties
+  
+  let accept (listingCid, offer) = forA_
+        [buyer, registry]
+        (\unauthorizedParty -> do
+          unauthorizedParty `submitMustFail` do
+            offer `exerciseCmd` Accept
+              with listingCid
+        )
+  
+  forA_ (zip listings offers) accept
+  
+  -- Clean up:
+  forA_
+    (zip listings offers)
+    (\(listing, offer) -> do
+      seller `submit` archiveCmd listing
+      buyer `submit` archiveCmd offer
+    )
+  
+  length <$> query @Listing seller
+    >>= assertEq 0 -- seller voluntarily archived their listings
+  length <$> query @Offer buyer
+    >>= assertEq 0 -- buyer voluntarily archived their offers
+
+testOffer_Negative_MismatchListing : Script ()
+testOffer_Negative_MismatchListing = script do
+  parties@[seller, buyer, registry] <- setup
+  listings <- setupListing parties
+  offers <- setupOffer parties
+  
+  length <$> query @Listing seller
+    >>= assertEq 3
+  length <$> query @Sale buyer
+    >>= assertEq 0
+  
+  forA_
+    (zip
+      (tail listings)
+      (init offers)
+    )
+    (\(listingCid, offer) -> do
+      seller `submitMustFail` do
+        offer `exerciseCmd` Accept
+          with listingCid
+    )
+  
+  length <$> query @Listing seller
+    >>= assertEq 3 -- no listings were archived
+  length <$> query @Sale buyer
+    >>= assertEq 0 -- no sales were created
+  
+  -- Clean up:
+  forA_
+    (zip listings offers)
+    (\(listing, offer) -> do
+      seller `submit` archiveCmd listing
+      buyer `submit` archiveCmd offer
+    )
+  
+  length <$> query @Listing seller
+    >>= assertEq 0 -- seller voluntarily archived their listings
+  length <$> query @Offer buyer
+    >>= assertEq 0 -- buyer voluntarily archived their offers

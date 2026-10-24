@@ -1,0 +1,13 @@
+# Confirm `sdk-version` and the `daml-script` dependency line against your
+# verified Path A / F3 starter before publishing; the exact spelling under the
+# 3.5 SDK / dpm is environment-specific.
+sdk-version: 3.5.2
+name: realty-capstone
+version: 0.1.0
+source: daml
+dependencies:
+  - daml-prim
+  - daml-stdlib
+  - daml-script
+build-options:
+  - --target=2.3

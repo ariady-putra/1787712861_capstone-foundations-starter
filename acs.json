@@ -1,0 +1,11 @@
+{
+  "filter": {
+    "filtersByParty": {
+      "Registry::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf": {
+        "cumulative": []
+      }
+    }
+  },
+  "verbose": true,
+  "activeAtOffset": "24"
+}

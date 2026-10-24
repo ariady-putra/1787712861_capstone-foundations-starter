@@ -1,0 +1,13 @@
+{
+  "user": {
+    "id": "bob",
+    "primaryParty": "Bob::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf",
+    "isDeactivated": false,
+    "metadata": {
+      "resourceVersion": "0",
+      "annotations": {}
+    },
+    "identityProviderId": "",
+    "primaryPartyAuthentication": false
+  }
+}

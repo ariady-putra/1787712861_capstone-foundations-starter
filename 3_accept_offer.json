@@ -1,0 +1,21 @@
+{
+  "commands": {
+    "commands": [
+      {
+        "ExerciseCommand": {
+          "templateId": "c51009794fe61ebb730d684ecb39e117cee4ebb3db3bcfc8fc437c903f5d3ac5:Realty:Offer",
+          "contractId": "00d37667108d4356c7df122315ee4eda1fb35d12474cf00dca9441d15174752990ca12122050106c0933227881108f538d978f930b96d010e97167b28fe82cd95ca652838f",
+          "choice": "Accept",
+          "choiceArgument": {
+            "listingCid": "00a79555e5701f340e5b0db024e27b96cc739a8399dcb733eb8a25772fac80ce3aca121220bb3b7e7489f252e61724c53aaa2bb241f6b9a994fd4c37714eefc94116de306f"
+          }
+        }
+      }
+    ],
+    "userId": "sarah",
+    "commandId": "3-accept-offer",
+    "actAs": [
+      "Sarah::12207c41eecd730cf12a514d2d3ad59c71b063bcbac645436a3ee602255eee79dcdf"
+    ]
+  }
+}

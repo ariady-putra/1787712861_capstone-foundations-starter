@@ -1,0 +1,147 @@
+-- =============================================================================
+--  SEALED ACCEPTANCE SCENARIO -- DO NOT EDIT.
+-- =============================================================================
+-- This is the machine-verifiable checker. You do not edit it and you do not need
+-- to read it to pass -- you only need a correct model.
+--
+-- To use it (the last stage in the brief):
+--   1. Copy this file into daml/ so it becomes part of the build.
+--   2. Run:  dpm test --files daml/Acceptance.daml 2>&1 | python3 grading/grade.py
+--      It prints DIGEST=<hex>. Submit that string.
+--
+-- If this file will not compile when you add it, your template/choice/field
+-- names or signatures do not match what the checker expects. See the interface
+-- box at the end of BRIEF.md.
+-- =============================================================================
+
+module Acceptance where
+
+import Realty
+import Daml.Script
+import DA.Foldable
+
+lbl : [(Party, Text)] -> Party -> Text
+lbl labels p = optional (show p) identity (lookup p labels)
+
+projListing : [(Party, Text)] -> Listing -> Text
+projListing labels l =
+  "LIST|" <> lbl labels l.seller <> "|" <> l.address
+        <> "|" <> show l.askingPrice <> "|" <> propertyLabel l.propertyType
+
+projOffer : [(Party, Text)] -> Offer -> Text
+projOffer labels o =
+  "OFFER|" <> lbl labels o.buyer <> "|" <> lbl labels o.seller
+         <> "|" <> o.address <> "|" <> show o.amount
+
+projSale : [(Party, Text)] -> Sale -> Text
+projSale labels s =
+  "SALE|" <> lbl labels s.seller <> "|" <> lbl labels s.buyer
+        <> "|" <> s.address <> "|" <> show s.price
+        <> "|" <> propertyLabel s.propertyType
+
+emit : Text -> Script ()
+emit line = debug ("@@STATE@@" <> line)
+
+acceptance : Script ()
+acceptance = do
+  let allocateParty = allocatePartyByHint . PartyIdHint
+  registry <- allocateParty "Registry"
+  sarah    <- allocateParty "Sarah"    -- seller
+  bob      <- allocateParty "Bob"      -- buyer
+  carol    <- allocateParty "Carol"    -- buyer
+  let labels =
+        [ (registry, "REGISTRY"), (sarah, "SARAH")
+        , (bob, "BOB"), (carol, "CAROL") ]
+
+  -- Sarah lists two properties.
+  l1 <- submit sarah do
+    createCmd Listing with
+      seller = sarah; registry; address = "12 Oak St"
+      propertyType = House; askingPrice = 500000.0
+  l2 <- submit sarah do
+    createCmd Listing with
+      seller = sarah; registry; address = "5 Elm Ave"
+      propertyType = Condo; askingPrice = 300000.0
+
+  -- MUST FAIL: a zero-price listing is rejected by `ensure`.
+  submitMustFail sarah do
+    createCmd Listing with
+      seller = sarah; registry; address = "0 Nowhere"
+      propertyType = Land; askingPrice = 0.0
+
+  -- Offers arrive.
+  oBobOak <- submit bob do
+    createCmd Offer with
+      buyer = bob; seller = sarah; registry; address = "12 Oak St"; amount = 480000.0
+  oCarolOak <- submit carol do
+    createCmd Offer with
+      buyer = carol; seller = sarah; registry; address = "12 Oak St"; amount = 490000.0
+  oBobElm <- submit bob do
+    createCmd Offer with
+      buyer = bob; seller = sarah; registry; address = "5 Elm Ave"; amount = 310000.0
+  oCarolElm <- submit carol do
+    createCmd Offer with
+      buyer = carol; seller = sarah; registry; address = "5 Elm Ave"; amount = 305000.0
+
+  -- MUST FAIL: a zero-amount offer is rejected by `ensure`.
+  submitMustFail bob do
+    createCmd Offer with
+      buyer = bob; seller = sarah; registry; address = "5 Elm Ave"; amount = 0.0
+
+  -- MUST FAIL: a buyer cannot accept his own offer (Accept is the seller's).
+  submitMustFail bob do exerciseCmd oBobOak Accept with listingCid = l1
+
+  -- Sarah accepts Carol's higher Oak St offer; the Oak St listing is archived.
+  _saleOak <- submit sarah do exerciseCmd oCarolOak Accept with listingCid = l1
+
+  -- MUST FAIL: the Oak St listing is now archived, so accepting Bob's competing
+  -- Oak St offer against it cannot fetch the listing. (Also proves Accept really
+  -- archived the listing.)
+  submitMustFail sarah do exerciseCmd oBobOak Accept with listingCid = l1
+
+  -- Sarah rejects Bob's leftover Oak St offer; Carol withdraws her Elm offer.
+  submit sarah do exerciseCmd oBobOak Reject
+  submit carol do exerciseCmd oCarolElm Withdraw
+
+  -- Sarah reprices the Elm listing.
+  l2' <- submit sarah do exerciseCmd l2 Reprice with newPrice = 320000.0
+
+  -- MUST FAIL: repricing to zero is rejected.
+  submitMustFail sarah do exerciseCmd l2' Reprice with newPrice = 0.0
+
+  -- A third listing, used to prove the address-match guard.
+  l3 <- submit sarah do
+    createCmd Listing with
+      seller = sarah; registry; address = "9 Pine Rd"
+      propertyType = Land; askingPrice = 200000.0
+
+  -- MUST FAIL: accepting Bob's Elm offer against the Pine Rd listing must be
+  -- rejected by the address-match check (if it were not, the wrong listing would
+  -- be archived and a Sale with mismatched data created).
+  submitMustFail sarah do exerciseCmd oBobElm Accept with listingCid = l3
+
+  -- Sarah accepts Bob's Elm offer against the (repriced) Elm listing.
+  _saleElm <- submit sarah do exerciseCmd oBobElm Accept with listingCid = l2'
+
+  -- Sarah delists Pine Rd (no sale).
+  submit sarah do exerciseCmd l3 Delist
+
+  -- A nonconsuming read (coverage; no state change).
+  _ <- submit carol do exerciseCmd _saleOak GetPrice
+
+  -- ---- Dump the final state as seen by the registry (observer of everything).
+  listings <- query @Listing registry
+  offers   <- query @Offer registry
+  sales    <- query @Sale registry
+
+  emit "BEGIN"
+  forA_ (map (projListing labels . snd) listings) emit
+  forA_ (map (projOffer   labels . snd) offers)   emit
+  forA_ (map (projSale    labels . snd) sales)    emit
+  emit "END"
+
+  -- Expected final state (order-independent; the grader sorts):
+  --   SALE|SARAH|CAROL|12 Oak St|490000.00|House
+  --   SALE|SARAH|BOB|5 Elm Ave|310000.00|Condo
+  -- No Listing and no Offer contracts remain.
+  pure ()

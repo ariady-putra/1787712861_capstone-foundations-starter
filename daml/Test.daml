@@ -187,9 +187,9 @@ testSale_GetPrice = script do
       , (land ,  40_000.00)
       ]
       (\(property, expectedPrice) -> do
-        propertyType <- buyer `submit` do
+        propertyPrice <- buyer `submit` do
           property |> GetPrice
-        propertyType === expectedPrice
+        propertyPrice === expectedPrice
       )
     
     length <$> query @Sale buyer

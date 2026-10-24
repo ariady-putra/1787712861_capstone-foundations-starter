@@ -86,13 +86,7 @@ testListing_Reprice = script do
       ]
     
     -- Clean up:
-    forA_
-      listings
-      (\listing -> do
-        seller `submit` do
-          archiveCmd listing
-      )
-    
+    forA_ listings $ submit seller . archiveCmd
     length <$> query @Listing seller
       >>= assertEq 0 -- seller voluntarily archived their listings
     
@@ -106,15 +100,11 @@ testListing_Delist = script do
     length <$> query @Listing seller
       >>= assertEq 3
     
-    forA_
-      listings
-      (\listing -> do
-        seller `submit` do
-          listing |> Delist
-      )
+    forA_ listings $ submit seller . (|> Delist)
     
     length <$> query @Listing seller
       >>= assertEq 0
+    
   where (|>) = exerciseCmd
 
 testOffer_Withdraw : Script ()
@@ -125,15 +115,11 @@ testOffer_Withdraw = script do
     length <$> query @Offer buyer
       >>= assertEq 3
     
-    forA_
-      offers
-      (\offer -> do
-        buyer `submit` do
-          offer |> Withdraw
-      )
+    forA_ offers $ submit buyer . (|> Withdraw)
     
     length <$> query @Offer buyer
       >>= assertEq 0
+    
   where (|>) = exerciseCmd
 
 testOffer_Reject : Script ()
@@ -144,15 +130,11 @@ testOffer_Reject = script do
     length <$> query @Offer seller
       >>= assertEq 3
     
-    forA_
-      offers
-      (\offer -> do
-        seller `submit` do
-          offer |> Reject
-      )
+    forA_ offers $ submit seller . (|> Reject)
     
     length <$> query @Offer seller
       >>= assertEq 0
+    
   where (|>) = exerciseCmd
 
 testOffer_Accept : Script ()
@@ -184,13 +166,7 @@ testOffer_Accept = script do
       >>= assertEq 3
     
     -- Clean up:
-    forA_
-      sales
-      (\sale -> do
-        [buyer, seller] `submit` do
-          archiveCmd sale
-      )
-    
+    forA_ sales $ submit [buyer, seller] . archiveCmd
     length <$> query @Sale buyer
       >>= assertEq 0 -- buyer voluntarily archived their sales
     
@@ -220,13 +196,7 @@ testSale_GetPrice = script do
       >>= assertEq 3
     
     -- Clean up:
-    forA_
-      sales
-      (\sale -> do
-        [buyer, seller] `submit` do
-          archiveCmd sale
-      )
-    
+    forA_ sales $ submit [buyer, seller] . archiveCmd
     length <$> query @Sale buyer
       >>= assertEq 0 -- buyer voluntarily archived their sales
     
@@ -277,9 +247,7 @@ testRealty_Positive = script do
   price === askingPrice
   
   -- Clean up:
-  [buyer, seller] `submit` do
-    archiveCmd sale
-  
+  [buyer, seller] `submit` archiveCmd sale
   length <$> query @Sale buyer
     >>= assertEq 0 -- buyer voluntarily archived their sales
 
@@ -316,13 +284,7 @@ testListing_Negative_RepriceLTE0 = script do
   forA_ listings reprice
   
   -- Clean up:
-  forA_
-    listings
-    (\listing -> do
-      seller `submit` do
-        archiveCmd listing
-    )
-  
+  forA_ listings $ submit seller . archiveCmd
   length <$> query @Listing seller
     >>= assertEq 0 -- seller voluntarily archived their listings
 
@@ -342,13 +304,7 @@ testListing_Negative_Reprice_AuthorizationFailure = script do
   forA_ listings reprice
   
   -- Clean up:
-  forA_
-    listings
-    (\listing -> do
-      seller `submit` do
-        archiveCmd listing
-    )
-  
+  forA_ listings $ submit seller . archiveCmd
   length <$> query @Listing seller
     >>= assertEq 0 -- seller voluntarily archived their listings
 
@@ -373,13 +329,7 @@ testListing_Negative_Delist_AuthorizationFailure = script do
     >>= assertEq 3 -- no listing were delisted (archived)
   
   -- Clean up:
-  forA_
-    listings
-    (\listing -> do
-      seller `submit` do
-        archiveCmd listing
-    )
-  
+  forA_ listings $ submit seller . archiveCmd
   length <$> query @Listing seller
     >>= assertEq 0 -- seller voluntarily archived their listings
 
@@ -416,13 +366,7 @@ testOffer_Negative_Withdraw_AuthorizationFailure = script do
   forA_ offers withdraw
   
   -- Clean up:
-  forA_
-    offers
-    (\offer -> do
-      buyer `submit` do
-        archiveCmd offer
-    )
-  
+  forA_ offers $ submit buyer . archiveCmd
   length <$> query @Offer buyer
     >>= assertEq 0 -- buyer voluntarily archived their offers
 
@@ -441,13 +385,7 @@ testOffer_Negative_Reject_AuthorizationFailure = script do
   forA_ offers reject
   
   -- Clean up:
-  forA_
-    offers
-    (\offer -> do
-      buyer `submit` do
-        archiveCmd offer
-    )
-  
+  forA_ offers $ submit buyer . archiveCmd
   length <$> query @Offer buyer
     >>= assertEq 0 -- buyer voluntarily archived their offers
 
